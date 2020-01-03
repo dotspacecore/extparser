@@ -1,4 +1,5 @@
 import datetime
+import re
 import sqlite3 as sqldb
 
 now = datetime.datetime.now()
@@ -20,18 +21,24 @@ outputFilePath = f'./out/extracto-csv-{strNowTime}.csv'
 file = open(inputFilePath)
 filelines = file.readlines()
 print(f'lines array length {len(filelines)}')
-movs = filelines[28:-36]
+movs = filelines[28:-10]
 
 for line in movs:
     if line.strip():
-        print(line.strip())
-        # dividir la cadena por tabulación
-        # TODO: nuevo formato no está tabulado
-        aux = line.strip().split('\t')
-        print(aux)
-        # desempaquetar los datos relevantes del arreglo en distintas variables
-        fecha, _, _, descripcion, org_debito, org_credito, _, _, _ = aux
-        # sacar el separador de miles de los montos
-        debito = org_debito.replace('.', '')
-        credito = org_credito.replace('.', '')
-        print(f'{fecha}, {descripcion}, {org_credito}, {org_debito}')
+        # print(line.strip())
+        # reemplazar los espacios múltiples por un separador y dividir
+        newline = re.sub(' {2,}', ';', line.rstrip().strip())
+        try:
+            # verificar si la línea empieza con un número (parte de la fecha de transacción)
+            # para filtrar el pie de página insertado en el txt en caso de ser multipágina
+            int(newline[0:2])
+            print(newline)
+            aux = newline.split(';')
+            # desempaquetar los datos relevantes del arreglo en distintas variables
+            fecha, _, _, descripcion, importe_debito, importe_credito, _, _ = aux
+            # sacar el separador de miles de los montos
+            debito = importe_debito.replace(',', '')
+            credito = importe_credito.replace(',', '')
+            print(f'{fecha}, {descripcion}, {debito}, {credito}')
+        except ValueError:
+            continue
