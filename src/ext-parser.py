@@ -22,6 +22,9 @@ file = open(inputFilePath)
 filelines = file.readlines()
 print(f'lines array length {len(filelines)}')
 movs = filelines[28:-10]
+# crear el archivo csv y agregar la cabecera
+csvfile = open(outputFilePath, 'w')
+csvfile.write("Date,Payee,Category,Memo,Outflow,Inflow\n")
 
 for line in movs:
     if line.strip():
@@ -32,13 +35,30 @@ for line in movs:
             # verificar si la línea empieza con un número (parte de la fecha de transacción)
             # para filtrar el pie de página insertado en el txt en caso de ser multipágina
             int(newline[0:2])
-            print(newline)
+            #print(newline)
             aux = newline.split(';')
             # desempaquetar los datos relevantes del arreglo en distintas variables
             fecha, _, _, descripcion, importe_debito, importe_credito, _, _ = aux
             # sacar el separador de miles de los montos
             debito = importe_debito.replace(',', '')
             credito = importe_credito.replace(',', '')
-            print(f'{fecha}, {descripcion}, {debito}, {credito}')
+            #print(f'{fecha}, {descripcion}, {debito}, {credito}')
+            acreedor = categoria = subcategoria = ''
+
+            # obtener el acreedor y la categoría desde una bd local
+            with conn:
+                cursor = conn.cursor()
+                cursor.execute(sqlSelect, (descripcion,))
+                row = cursor.fetchone()
+                if row is not None:
+                    #print(row)
+                    acreedor, categoria, subcategoria, _ = row
+
+            # armar la cadena para el archivo csv
+            csvstr = f"{fecha},{acreedor},{categoria}: {subcategoria},{descripcion},{debito},{credito}\n"
+            print(csvstr)
+            # agregar la línea al archivo csv
+            csvfile.write(csvstr)
+
         except ValueError:
             continue
